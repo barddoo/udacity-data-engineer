@@ -6,20 +6,32 @@ from sql_queries import *
 import psycopg2.extras
 from datetime import datetime
 
+
 def process_song_file(cur, filepath):
+    """
+     Process songs files and insert data into the Postgres.
+     :param cur: cursor Postgres reference
+     :param filepath: file path for the file to load
+     """
     # open song file
     df = pd.read_json(filepath, lines=True)
 
     # insert song record
     song_data = df[['song_id', 'title', 'artist_id', 'year', 'duration']].values
-    #print(song_data)
+
     psycopg2.extras.execute_batch(cur, song_table_insert, tuple(tuple(row) for row in song_data))
-    
+
     # insert artist record
     artist_data = df[['artist_id', 'artist_name', 'artist_location', 'artist_latitude', 'artist_longitude']].values
     psycopg2.extras.execute_batch(cur, artist_table_insert, tuple(tuple(row) for row in artist_data))
 
+
 def process_log_file(cur, filepath):
+    """
+     Process songs files and insert data into the Postgres.
+     :param cur: cursor Postgres reference
+     :param filepath: file path for the file to load
+     """
     # open log file
     df = pd.read_json(filepath, lines=True)
 
@@ -28,15 +40,15 @@ def process_log_file(cur, filepath):
 
     # convert timestamp column to datetime
     t = pd.to_datetime(df['ts'], unit='ms')
-    time_data = ([str(datetime.fromtimestamp(int(tim.timestamp()) / 1000)), tim.hour, tim.day, tim.week, tim.month, tim.year, tim.weekday()] for tim in t)
+    time_data = (
+        [str(datetime.fromtimestamp(int(tim.timestamp()) / 1000)), tim.hour, tim.day, tim.week, tim.month, tim.year,
+         tim.weekday()] for tim in t)
     column_labels = (['timestamp', 'hour', 'day', 'week of year', 'month', 'year', 'weekday'])
     time_df = pd.DataFrame(time_data, columns=column_labels).drop_duplicates()
 
-    #for i, row in time_df.iterrows():
-    #    cur.execute(time_table_insert, list(row))
-    psycopg2.extras.execute_batch(cur,time_table_insert, tuple(tuple(row) for i, row in time_df.iterrows()))
+    psycopg2.extras.execute_batch(cur, time_table_insert, tuple(tuple(row) for i, row in time_df.iterrows()))
     # load user table
-    user_df = df[['userId','firstName','lastName','gender','level']]
+    user_df = df[['userId', 'firstName', 'lastName', 'gender', 'level']]
 
     # insert user records
     psycopg2.extras.execute_batch(cur, user_table_insert, tuple(tuple(row) for i, row in user_df.iterrows()))
@@ -44,28 +56,37 @@ def process_log_file(cur, filepath):
     # insert songplay records
     songplay_data = []
     for index, row in df.iterrows():
-        
+
         # get songid and artistid from song and artist tables
         cur.execute(song_select, (row.song, row.artist, row.length))
         results = cur.fetchone()
-        
+
         if results:
-            songid, artistid = results
+            song_id, artist_id = results
         else:
-            songid, artistid = None, None
+            song_id, artist_id = None, None
 
         # insert songplay record
-        songplay_data += (str(datetime.fromtimestamp(int(row.ts) / 1000)), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent)
-        
+        songplay_data += (
+            str(datetime.fromtimestamp(int(row.ts) / 1000)), row.userId, row.level, song_id, artist_id, row.sessionId,
+            row.location, row.userAgent)
+
     psycopg2.extras.execute_batch(cur, songplay_table_insert, songplay_data)
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    Function to load data from songs and event log files into Postgres.
+    :param cur: cursor Postgres reference
+    :param conn: database connection
+    :param filepath: parent directory where are the files
+    :param func: function
+    """
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
-        files = glob.glob(os.path.join(root,'*.json'))
-        for f in files :
+        files = glob.glob(os.path.join(root, '*.json'))
+        for f in files:
             all_files.append(os.path.abspath(f))
 
     # get total number of files found
