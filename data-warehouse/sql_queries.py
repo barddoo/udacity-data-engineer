@@ -1,6 +1,4 @@
-
 import configparser
-
 
 # CONFIG
 config = configparser.ConfigParser()
@@ -62,11 +60,11 @@ songplay_table_create = ("""
 CREATE TABLE IF NOT EXISTS songplays
 (
     songplay_id INTEGER IDENTITY (1, 1) PRIMARY KEY ,
-    start_time TIMESTAMP,
-    user_id INTEGER,
+    start_time TIMESTAMP NOT NULL,
+    user_id INTEGER NOT NULL,
     level VARCHAR,
-    song_id VARCHAR,
-    artist_id VARCHAR,
+    song_id VARCHAR NOT NULL,
+    artist_id VARCHAR NOT NULL,
     session_id INTEGER,
     location VARCHAR,
     user_agent VARCHAR
@@ -93,7 +91,7 @@ CREATE TABLE IF NOT EXISTS songs
 (
     song_id VARCHAR PRIMARY KEY,
     title VARCHAR,
-    artist_id VARCHAR,
+    artist_id VARCHAR NOT NULL,
     year INTEGER ENCODE BYTEDICT,
     duration FLOAT
 )

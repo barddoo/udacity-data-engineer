@@ -4,11 +4,15 @@ from sql_queries import create_table_queries, drop_table_queries
 
 
 def drop_tables(cur):
+    """it drops all tables from the database to archive idempotency
+    """
     for query in drop_table_queries:
         cur.execute(query)
 
 
 def create_tables(cur):
+    """it creates all tables we'll be working on
+    """
     for query in create_table_queries:
         cur.execute(query)
 
